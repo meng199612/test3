@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 from pathlib import Path
 import os
+from backend.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class IncrementalSfM:
@@ -17,10 +20,10 @@ class IncrementalSfM:
         pts1 = np.float32([kp1[m.queryIdx].pt for m in matches])
         pts2 = np.float32([kp2[m.trainIdx].pt for m in matches])
         if len(pts1) < 8:
-            return None, None, None, []
+            return None, None, None, pts1, pts2
         E, mask = cv2.findEssentialMat(pts1, pts2, self.K, method=cv2.RANSAC, prob=0.999, threshold=1.0)
         if E is None or E.shape[0] != 3:
-            return None, None, None, []
+            return None, None, None, pts1, pts2
         _, R, t, mask_pose = cv2.recoverPose(E, pts1, pts2, self.K)
         inliers = [m for i, m in enumerate(matches) if mask[i] > 0 and i < len(mask_pose) and mask_pose[i] > 0]
         return R, t, inliers, pts1, pts2
@@ -65,14 +68,14 @@ class IncrementalSfM:
                     kp_b_idx = m.trainIdx if f1 == reg_fn else m.queryIdx
                     points_2d_list.append(kp_b[kp_b_idx].pt)
         if len(points_3d_list) < 4:
-            print(f"  ⚠️ 无法注册 {new_filename}: 仅 {len(points_3d_list)} 个对应点")
+            logger.warning(f"  ⚠️ 无法注册 {new_filename}: 仅 {len(points_3d_list)} 个对应点")
             return False
 
         pts_3d = np.float32(points_3d_list)
         pts_2d = np.float32(points_2d_list)
         R, t, inliers = self.get_pnp_pose(pts_3d, pts_2d, self.K)
         if R is None:
-            print(f"  ⚠️ 无法注册 {new_filename}: PnP失败")
+            logger.warning(f"  ⚠️ 无法注册 {new_filename}: PnP失败")
             return False
 
         self.camera_poses[new_filename] = (R, t)
@@ -95,7 +98,7 @@ class IncrementalSfM:
                 for pt in new_pts:
                     if pt[2] > 0:
                         self.points_3d.append(pt)
-        print(f"[增量SfM] 注册 {new_filename} - 已有 {len(self.points_3d)} 个3D点")
+        logger.info(f"[增量SfM] 注册 {new_filename} - 已有 {len(self.points_3d)} 个3D点")
         return True
 
     def run(self, image_dir, features_dict, match_pairs):
@@ -113,13 +116,12 @@ class IncrementalSfM:
         self.camera_poses[f2] = (R, t)
         self.registered = [f1, f2]
 
-        filtered_matches = [m for i, m in enumerate(matches)
-                          if i < len(inliers) and inliers[i] > 0][:len(inliers)]
+        filtered_matches = inliers
         pts3d = self.triangulate_points(kp1, kp2, filtered_matches, P1, P2)
         self.points_3d = [pt for pt in pts3d if pt[2] > 0]
         self._point_to_kp = [(f1, m.queryIdx) for m in filtered_matches[:len(self.points_3d)]]
 
-        print(f"[增量SfM] 初始对: {f1} ↔ {f2} - {len(self.points_3d)} 个3D点")
+        logger.info(f"[增量SfM] 初始对: {f1} ↔ {f2} - {len(self.points_3d)} 个3D点")
 
         remaining = [fn for fn in sorted(features_dict.keys())
                     if fn not in self.registered]
@@ -128,5 +130,5 @@ class IncrementalSfM:
             self.register_image(fn, kp, features_dict, match_pairs)
 
         points_3d = np.array(self.points_3d) if self.points_3d else np.zeros((0, 3))
-        print(f"[增量SfM] 完成: {len(self.registered)} 张注册, {points_3d.shape[0]} 个3D点")
+        logger.info(f"[增量SfM] 完成: {len(self.registered)} 张注册, {points_3d.shape[0]} 个3D点")
         return points_3d, self.camera_poses

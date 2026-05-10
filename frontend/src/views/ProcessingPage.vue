@@ -22,13 +22,12 @@ const progress = ref(0)
 const message = ref('准备中...')
 const error = ref('')
 let ws = null
+let reconnectAttempts = 0
+const maxReconnectAttempts = 3
 
 onMounted(() => {
   const sid = route.params.sid
   connectWebSocket(sid)
-  fetch(`/api/reconstruct/${sid}`, { method: 'POST' }).catch(e => {
-    error.value = '无法启动重建: ' + e.message
-  })
 })
 
 function connectWebSocket(sid) {
@@ -49,7 +48,17 @@ function connectWebSocket(sid) {
     }
   }
 
-  ws.onerror = () => { error.value = 'WebSocket 连接失败' }
+  ws.onerror = () => { 
+    error.value = 'WebSocket 连接失败' 
+  }
+
+  ws.onclose = () => {
+    if (reconnectAttempts < maxReconnectAttempts && progress.value < 100) {
+      reconnectAttempts++
+      message.value = `连接断开，正在重试 (${reconnectAttempts}/${maxReconnectAttempts})...`
+      setTimeout(() => connectWebSocket(sid), 2000)
+    }
+  }
 }
 
 onBeforeUnmount(() => { if (ws) ws.close() })

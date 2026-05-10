@@ -1,7 +1,7 @@
 import os
 import asyncio
 import json
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from backend.config import UPLOAD_DIR
 from backend.services.sfm.pipeline import SfMPipeline
 
@@ -14,7 +14,7 @@ async def start_reconstruction(session_id: str):
     session_dir = os.path.join(UPLOAD_DIR, session_id)
     image_dir = os.path.join(session_dir, "images")
     if not os.path.exists(image_dir):
-        return {"error": "Session not found"}, 404
+        raise HTTPException(status_code=404, detail="Session not found")
 
     active_tasks[session_id] = {"status": "pending", "progress": 0}
     return {"task_id": session_id}
@@ -34,18 +34,19 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
     active_tasks[session_id] = {"status": "running", "progress": 0}
 
+    main_loop = asyncio.get_running_loop()
+
     def progress_callback(percent, message):
         active_tasks[session_id] = {"status": "running", "progress": percent}
         asyncio.run_coroutine_threadsafe(
             websocket.send_json({"type": "progress", "percent": percent, "message": message}),
-            asyncio.get_event_loop()
+            main_loop
         )
 
     try:
         pipeline = SfMPipeline(image_dir, session_dir, progress_callback)
         
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, pipeline.run)
+        result = await main_loop.run_in_executor(None, pipeline.run)
 
         active_tasks[session_id] = {"status": "complete", "progress": 100}
         await websocket.send_json({
