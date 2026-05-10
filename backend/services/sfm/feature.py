@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 from pathlib import Path
 import os
+from backend.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def extract_features(image_path: str):
@@ -29,5 +32,5 @@ def extract_all_features(image_dir: str) -> dict:
         filepath = os.path.join(image_dir, filename)
         kp, desc = extract_features(filepath)
         features[filename] = (kp, desc)
-        print(f"[特征提取] {filename} - 找到 {len(kp)} 个关键点")
+        logger.info(f"[特征提取] {filename} - 找到 {len(kp)} 个关键点")
     return features

@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+from backend.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def match_features(desc1, desc2, ratio_thresh=0.75):
@@ -26,7 +29,7 @@ def match_adjacent_pairs(features_dict: dict) -> list:
         kp2, d2 = features_dict[f2]
         matches = match_features(d1, d2)
         pairs.append((f1, f2, matches, kp1, kp2))
-        print(f"[特征匹配] {f1} ↔ {f2} - 有效匹配 {len(matches)} 对")
+        logger.info(f"[特征匹配] {f1} ↔ {f2} - 有效匹配 {len(matches)} 对")
         if len(matches) < 20:
-            print(f"  ⚠️ 警告: 匹配对数偏少 ({len(matches)}), 可能影响重建")
+            logger.warning(f"  ⚠️ 警告: 匹配对数偏少 ({len(matches)}), 可能影响重建")
     return pairs

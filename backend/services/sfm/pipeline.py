@@ -7,6 +7,9 @@ from backend.services.sfm.matching import match_adjacent_pairs
 from backend.services.sfm.reconstruction import IncrementalSfM
 from backend.services.sfm.bundle_adjust import bundle_adjust
 from backend.services.sfm.pointcloud import filter_pointcloud, export_ply, generate_display_data
+from backend.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class SfMPipeline:
@@ -58,7 +61,7 @@ class SfMPipeline:
                     points_3d, camera_poses, observations[:min(len(observations), 500)], K
                 )
             except Exception as e:
-                print(f"[BA] 跳过BA优化: {e}")
+                logger.warning(f"[BA] 跳过BA优化: {e}")
 
         self.progress(75, "正在采样点云颜色...")
         colors = self._sample_colors(points_3d, sfm)
@@ -71,6 +74,7 @@ class SfMPipeline:
 
         self.progress(95, "正在生成Web展示数据...")
         display_data = generate_display_data(pcd)
+        display_data["n_registered"] = len(sfm.registered)
 
         json_path = os.path.join(self.session_dir, "result_simple.json")
         with open(json_path, 'w') as f:

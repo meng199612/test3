@@ -2,6 +2,9 @@ import open3d as o3d
 import numpy as np
 import json
 import os
+from backend.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def filter_pointcloud(points_3d, colors=None):
@@ -19,9 +22,9 @@ def export_ply(pcd, output_path: str):
     o3d.io.write_point_cloud(output_path, pcd, write_ascii=False)
     if os.path.exists(output_path):
         file_size = os.path.getsize(output_path)
-        print(f"[导出] PLY文件已保存: {output_path} ({file_size / 1024:.1f} KB)")
+        logger.info(f"[导出] PLY文件已保存: {output_path} ({file_size / 1024:.1f} KB)")
     else:
-        print(f"[导出] 警告: PLY文件未能保存到 {output_path}")
+        logger.warning(f"[导出] 警告: PLY文件未能保存到 {output_path}")
 
 
 def simplify_for_web(pcd, max_points=50000):

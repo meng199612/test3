@@ -1,6 +1,9 @@
 import numpy as np
 import cv2
 from scipy.optimize import least_squares
+from backend.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def reprojection_error(params, n_cameras, n_points, observations, K):
@@ -79,6 +82,6 @@ def bundle_adjust(points_3d, camera_poses, observations, K):
 
     error_before = np.mean(np.abs(reprojection_error(init_params, n_cameras, n_points, observations, K)))
     error_after = np.mean(np.abs(result.fun))
-    print(f"[BA] 平均重投影误差: {error_before:.2f}px → {error_after:.2f}px")
+    logger.info(f"[BA] 平均重投影误差: {error_before:.2f}px → {error_after:.2f}px")
 
     return opt_points, camera_poses
