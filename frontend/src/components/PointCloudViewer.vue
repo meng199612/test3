@@ -8,11 +8,12 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 const props = defineProps({
-  pointData: { type: Object, default: null }
+  pointData: { type: Object, default: null },
+  pointSize: { type: Number, default: 0.02 }
 })
 
 const container = ref(null)
-let scene, camera, renderer, controls, pointCloud
+let scene, camera, renderer, controls, pointCloud, material
 
 function initScene() {
   const el = container.value
@@ -65,8 +66,8 @@ function loadPointCloud(data) {
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
-  const material = new THREE.PointsMaterial({
-    size: 0.02,
+  material = new THREE.PointsMaterial({
+    size: props.pointSize,
     vertexColors: true,
     sizeAttenuation: true
   })
@@ -83,6 +84,13 @@ function loadPointCloud(data) {
   controls.update()
 }
 
+function updatePointSize(size) {
+  if (material) {
+    material.size = size
+    material.needsUpdate = true
+  }
+}
+
 function onResize() {
   if (!container.value || !renderer) return
   const w = container.value.clientWidth
@@ -94,6 +102,10 @@ function onResize() {
 
 watch(() => props.pointData, (newData) => {
   if (newData) loadPointCloud(newData)
+})
+
+watch(() => props.pointSize, (newSize) => {
+  updatePointSize(newSize)
 })
 
 onMounted(() => {

@@ -21,6 +21,7 @@
       <h3>已选择 {{ files.length }} 张图片</h3>
       <div class="file-grid">
         <div v-for="(file, i) in files" :key="i" class="file-item">
+          <button @click.stop="removeFile(i)" class="remove-btn" title="删除">×</button>
           <img :src="file.url" :alt="file.name">
           <span class="file-name">{{ file.name }}</span>
         </div>
@@ -67,6 +68,14 @@ function handleFiles(fileList) {
     })
   }
   files.value = [...files.value, ...newFiles]
+}
+
+function removeFile(index) {
+  const file = files.value[index]
+  if (file && file.url) {
+    URL.revokeObjectURL(file.url)
+  }
+  files.value.splice(index, 1)
 }
 
 async function startUpload() {
@@ -119,10 +128,22 @@ async function startUpload() {
 .file-list { margin-top: 30px; }
 .file-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 .file-item {
-  width: 100px; text-align: center;
+  width: 100px; text-align: center; position: relative;
 }
 .file-item img { width: 100%; height: 80px; object-fit: cover; border-radius: 6px; }
 .file-item .file-name { font-size: 11px; color: #aaa; word-break: break-all; }
+.remove-btn {
+  position: absolute; top: -8px; right: -8px;
+  width: 22px; height: 22px;
+  border: none; border-radius: 50%;
+  background: #ff6b6b; color: #fff;
+  font-size: 14px; font-weight: bold;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  z-index: 10; opacity: 0.9;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.remove-btn:hover { transform: scale(1.1); opacity: 1; }
 .start-btn {
   display: block; margin: 30px auto 0; padding: 14px 48px; font-size: 18px;
   background: #6c5ce7; color: #fff; border: none; border-radius: 10px;

@@ -3,11 +3,16 @@
     <div class="toolbar">
       <button @click="goHome" class="btn-back">← 重新上传</button>
       <span class="info">点数: {{ info.points }} | 图片: {{ info.images }} 张</span>
+      <div class="point-size-control">
+        <label>点大小:</label>
+        <input type="range" v-model.number="pointSize" min="0.005" max="0.1" step="0.001" class="size-slider">
+        <span class="size-value">{{ pointSize.toFixed(3) }}</span>
+      </div>
       <a :href="`/api/download/${sid}`" class="btn-download" download>⬇ 下载 PLY</a>
     </div>
     <div v-if="loading" class="loading">加载点云数据中...</div>
     <div v-else class="viewer-wrapper">
-      <PointCloudViewer :pointData="pointData" />
+      <PointCloudViewer :pointData="pointData" :pointSize="pointSize" />
     </div>
     <p v-if="error" class="error">{{ error }}</p>
   </div>
@@ -25,6 +30,7 @@ const loading = ref(true)
 const error = ref('')
 const pointData = ref(null)
 const info = ref({ points: 0, images: 0 })
+const pointSize = ref(0.02)
 
 onMounted(async () => {
   try {
@@ -42,7 +48,8 @@ onMounted(async () => {
     }
     const data = await res.json()
     pointData.value = data
-    info.value.points = data.n_points || data.vertices.length
+    info.value.points = data.n_points ?? (data.vertices ? data.vertices.length : 0)
+    info.value.images = data.n_registered ?? 0
   } catch (e) {
     console.error('点云加载失败:', e)
     error.value = e.message
@@ -58,6 +65,7 @@ function goHome() { router.push('/') }
 .toolbar {
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px 20px; background: #1a1a24; z-index: 10;
+  gap: 20px;
 }
 .btn-back, .btn-download {
   padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; text-decoration: none;
@@ -65,6 +73,15 @@ function goHome() { router.push('/') }
 .btn-back { background: #333; color: #ccc; border: none; }
 .btn-download { background: #6c5ce7; color: #fff; border: none; }
 .info { color: #aaa; font-size: 14px; }
+.point-size-control {
+  display: flex; align-items: center; gap: 8px; color: #aaa; font-size: 14px;
+}
+.size-slider {
+  width: 100px; cursor: pointer;
+}
+.size-value {
+  min-width: 50px; text-align: right; font-family: monospace;
+}
 .viewer-wrapper { flex: 1; }
 .loading { display: flex; align-items: center; justify-content: center; height: 100%; color: #888; font-size: 18px; }
 .error { color: #ff6b6b; text-align: center; padding: 20px; }
