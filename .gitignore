@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Node.js
+node_modules/
+dist/
+.vite/
+
+# Uploads and outputs
+uploads/
+*.ply
+*.json
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
